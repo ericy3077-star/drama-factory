@@ -1,0 +1,1 @@
+"""Billing shared module."""
