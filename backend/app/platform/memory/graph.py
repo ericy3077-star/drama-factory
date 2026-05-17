@@ -38,25 +38,6 @@ async def get_neighbours(
     Uses a recursive CTE so it works in plain PostgreSQL.
     """
     sql = text("""
-        WITH RECURSIVE neighbours AS (
-            SELECT node_b_id AS id, 1 AS depth
-            FROM memory_edges
-            WHERE node_a_id = :root AND deleted_at IS NULL
-            UNION
-            SELECT node_b_id AS id, depth + 1
-            FROM   node_b_id AS id, depth + 1
-            FROM   memory_edges me
-            JOIN   neighbours n ON me.node_a_id = n.id
-            WHERE  depth < :max_depth AND me.deleted_at IS NULL
-        )
-        SELECT DISTINCT m.*
-        FROM neighbours nb
-        JOIN memories m ON m.id = nb.id
-        WHERE m.deleted_at IS NULL
-        ORDER BY m.created_at DESC
-    """)
-    # Fix the double-alias bug in the CTE above — rewrite cleanly:
-    sql = text("""
         WITH RECURSIVE neighbours(id, depth) AS (
             SELECT node_b_id, 1
             FROM   memory_edges
