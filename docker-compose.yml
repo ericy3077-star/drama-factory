@@ -1,6 +1,23 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: drama
+      POSTGRES_PASSWORD: drama_dev
+      POSTGRES_DB: drama_factory
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drama -d drama_factory"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations/versions/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_init.sql
+
   backend:
     build:
       context: ./backend
@@ -8,7 +25,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://drama:drama_dev@postgres:5432/drama_factory}
       - REDIS_URL=redis://redis:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -22,6 +39,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -31,12 +50,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://drama:drama_dev@postgres:5432/drama_factory}
       - REDIS_URL=redis://redis:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - HEYGEN_API_KEY=${HEYGEN_API_KEY}
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     command: python -m app.workers.avatar_worker
 
@@ -45,11 +66,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://drama:drama_dev@postgres:5432/drama_factory}
       - REDIS_URL=redis://redis:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     command: python -m app.workers.feed_worker
 
@@ -64,6 +87,7 @@ services:
       - NEXT_PUBLIC_WS_URL=ws://localhost:8000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=http://localhost:3000
+      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY:-}
     depends_on:
       - backend
 
@@ -81,3 +105,4 @@ services:
 
 volumes:
   redis_data:
+  postgres_data:

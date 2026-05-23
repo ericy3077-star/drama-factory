@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Zap,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -169,17 +170,36 @@ export function Sidebar() {
           {!collapsed && '设置'}
         </Link>
 
+        {/* Upgrade CTA — only show for free users */}
+        {!collapsed && (
+          <button
+            onClick={async () => {
+              try {
+                const { apiPost } = await import('@/lib/api')
+                const res = await apiPost<{ checkout_url: string }>('/api/v1/billing/checkout', { plan: 'pro' })
+                window.location.href = res.checkout_url
+              } catch {
+                window.location.href = '/billing'
+              }
+            }}
+            className="w-full flex items-center gap-2 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-3 py-2 text-sm font-medium transition-colors"
+          >
+            <Zap className="h-4 w-4 shrink-0" />
+            升级 Pro 解锁全部功能
+          </button>
+        )}
+
         <div className={cn('flex items-center gap-3 px-3 py-2', collapsed && 'justify-center px-2')}>
           <Avatar className="h-7 w-7 shrink-0">
-            <AvatarImage src={user?.avatar_url} alt={user?.name} />
+            <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.display_name} />
             <AvatarFallback className="text-xs">
-              {user?.name?.charAt(0).toUpperCase() ?? 'U'}
+              {user?.display_name?.charAt(0).toUpperCase() ?? 'U'}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.name ?? '用户'}</p>
+                <p className="text-sm font-medium truncate">{user?.display_name ?? '用户'}</p>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
               <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleSignOut}>
