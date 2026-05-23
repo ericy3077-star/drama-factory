@@ -62,10 +62,9 @@ class Settings(BaseSettings):
     langchain_tracing_v2: bool = False
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    cors_origins: Annotated[list[str], Field(default_factory=list)] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ]
+    cors_origins: list[str] = Field(
+        default=["http://localhost:3000", "http://localhost:5173"],
+    )
 
     # ── Celery ───────────────────────────────────────────────────────────────
     celery_broker_url: str = "redis://localhost:6379/1"

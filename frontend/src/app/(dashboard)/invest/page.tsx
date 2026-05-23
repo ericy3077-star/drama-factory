@@ -1,62 +1,78 @@
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
 import type { Metadata } from 'next'
 import { FeedCard } from '@/components/invest/FeedCard'
+import { apiPost } from '@/lib/api'
+import { useInvestStore } from '@/store/investStore'
+import type { FeedItem } from '@/types/invest'
+import { Loader2, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
-export const metadata: Metadata = { title: 'InvestMind — 信息流' }
-
-// Server Component — data fetched server-side in real app
-async function getFeedItems() {
-  // Placeholder data; replace with actual API call
-  return [
-    {
-      id: '1',
-      title: '美联储维持利率不变，暗示年内可能降息两次',
-      summary:
-        'FOMC 会议纪要显示委员们对通胀回落轨迹持谨慎乐观态度，市场预期 9 月为首次降息窗口。',
-      source: 'Reuters',
-      source_url: 'https://reuters.com',
-      category: 'macro' as const,
-      tickers: ['SPY', 'QQQ', 'TLT'],
-      sentiment: 'positive' as const,
-      sentiment_score: 0.65,
-      published_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      title: 'NVIDIA Q1 业绩超预期，数据中心收入同比增长 427%',
-      summary:
-        'NVDA 财报季再次亮眼，AI 芯片需求持续强劲。公司同时宣布 100 亿美元回购计划，盘后股价涨逾 8%。',
-      source: 'Bloomberg',
-      source_url: 'https://bloomberg.com',
-      category: 'earnings' as const,
-      tickers: ['NVDA'],
-      sentiment: 'positive' as const,
-      sentiment_score: 0.92,
-      published_at: new Date(Date.now() - 3600_000).toISOString(),
-    },
-    {
-      id: '3',
-      title: '比特币跌破 6 万美元关口，市场情绪趋于谨慎',
-      summary: '链上数据显示大额持仓者持续减持，现货 ETF 周净流出达 4.2 亿美元。',
-      source: 'CoinDesk',
-      source_url: 'https://coindesk.com',
-      category: 'crypto' as const,
-      tickers: ['BTC', 'ETH'],
-      sentiment: 'negative' as const,
-      sentiment_score: -0.55,
-      published_at: new Date(Date.now() - 7200_000).toISOString(),
-    },
-  ]
+async function fetchFeed(tickers: string[]): Promise<FeedItem[]> {
+  return apiPost<FeedItem[]>('/api/v1/invest/feed', {
+    tickers,
+    topics: ['A股', '宏观经济', '科技', 'AI'],
+    limit: 30,
+  })
 }
 
-export default async function InvestPage() {
-  const items = await getFeedItems()
+export default function InvestPage() {
+  const watchlistTickers = useInvestStore((s) => s.watchlistTickers)
+
+  const { data: items = [], isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: ['feed', watchlistTickers],
+    queryFn: () => fetchFeed(watchlistTickers),
+    staleTime: 5 * 60 * 1000,  // 5 min
+    refetchInterval: 10 * 60 * 1000,  // auto-refresh every 10 min
+  })
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">信息流</h1>
-        <p className="text-sm text-muted-foreground">AI 实时分析 · 情感评分</p>
+        <div>
+          <h1 className="text-2xl font-bold">信息流</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            AI 实时分析 · 情感评分 · 每 10 分钟刷新
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          {isFetching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          <span className="ml-2">刷新</span>
+        </Button>
       </div>
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          正在获取最新资讯...
+        </div>
+      )}
+
+      {isError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive text-center">
+          获取信息流失败，请检查网络连接或重新刷新。
+          <Button variant="link" size="sm" onClick={() => refetch()} className="ml-2 h-auto p-0">
+            重试
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && !isError && items.length === 0 && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p>暂无信息，请先在自选股中添加关注标的。</p>
+        </div>
+      )}
+
       <div className="space-y-3">
         {items.map((item) => (
           <FeedCard key={item.id} item={item} />
