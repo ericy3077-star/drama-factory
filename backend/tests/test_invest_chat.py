@@ -33,7 +33,7 @@ async def test_chat_streams_sse(client: AsyncClient) -> None:
         yield "data: [DONE]\n\n"
 
     with patch(
-        "app.verticals.invest.chat.chat_stream",
+        "app.verticals.invest.router.chat_stream",
         side_effect=lambda *a, **kw: fake_stream(),
     ):
         resp = await client.post(

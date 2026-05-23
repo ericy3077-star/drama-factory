@@ -1,6 +1,13 @@
 """Shared pytest fixtures."""
 from __future__ import annotations
 
+# IMPORTANT: Set env vars before any app imports so pydantic-settings
+# can build Settings without requiring real service credentials.
+import os
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://x:x@localhost/test")
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-tests-only")
+os.environ.setdefault("APP_ENV", "development")
+
 import asyncio
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,6 +16,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
+
 
 # In-memory SQLite for unit tests (no pgvector, test logic only)
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
@@ -31,11 +39,6 @@ async def mock_session() -> AsyncMock:
 @pytest.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
     """HTTP test client with mocked DB session and no real external connections."""
-    import os
-    os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://x:x@localhost/test")
-    os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-tests-only")
-
-    # Import after env vars are set so settings is populated
     from app.main import create_app
 
     app = create_app()
