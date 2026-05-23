@@ -14,13 +14,16 @@ from app.verticals.invest.schemas import FeedItemSchema
 
 log = structlog.get_logger()
 
-# RSS sources for financial news
+# RSS sources — Chinese A-share market primary, international secondary
 _FEEDS: list[dict[str, str]] = [
+    # A-share & China macro
+    {"name": "东方财富", "url": "https://feed.eastmoney.com/news/cat_254_1_sjhqnews.xml"},
+    {"name": "新浪财经", "url": "https://rss.sina.com.cn/finance/tech/financenews.xml"},
+    {"name": "财联社电报", "url": "https://www.cls.cn/rss"},
+    {"name": "证券时报", "url": "https://www.stcn.com/rss/index.xml"},
+    # International for global macro context
     {"name": "Reuters Business", "url": "https://feeds.reuters.com/reuters/businessNews"},
-    {"name": "Bloomberg Markets", "url": "https://feeds.bloomberg.com/markets/news.rss"},
-    {"name": "CNBC Top News", "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html"},
     {"name": "Yahoo Finance", "url": "https://feeds.finance.yahoo.com/rss/2.0/headline"},
-    {"name": "Seeking Alpha", "url": "https://seekingalpha.com/market_currents.xml"},
 ]
 
 

@@ -77,9 +77,11 @@ class MemoryEngine:
             return Memory(dict(row))
 
         embedding = await embed_text(content)
-        vec_literal = "[" + ",".join(str(x) for x in embedding) + "]"
+        # Build vector literal from validated floats only — safe to interpolate
+        vec_literal = "[" + ",".join(f"{float(x):.8g}" for x in embedding) + "]"
         memory_id = uuid4()
 
+        import json as _json
         insert_sql = text(f"""
             INSERT INTO memories
                 (id, user_id, content, content_type, topic, metadata, fingerprint, embedding)
@@ -96,7 +98,7 @@ class MemoryEngine:
                 "content": content,
                 "ctype": content_type,
                 "topic": topic,
-                "meta": str(metadata or {}).replace("'", '"'),
+                "meta": _json.dumps(metadata or {}),
                 "fp": fingerprint,
             },
         )

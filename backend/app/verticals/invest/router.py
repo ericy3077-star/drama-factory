@@ -5,9 +5,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from app.dependencies import CurrentUserId, DBSession
 from app.verticals.invest import service
+from app.verticals.invest.chat import chat_stream
 from app.verticals.invest.schemas import (
     AgentTaskRequest,
     AgentTaskResponse,
@@ -23,6 +25,26 @@ from app.verticals.invest.schemas import (
 )
 
 router = APIRouter()
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=4000)
+    history: list[dict[str, str]] = Field(default_factory=list)
+
+
+# ── Chat (memory-augmented agentic SSE) ──────────────────────────────────────
+
+@router.post("/chat")
+async def invest_chat(
+    request: ChatRequest,
+    user_id: CurrentUserId,
+    session: DBSession,
+) -> StreamingResponse:
+    return StreamingResponse(
+        chat_stream(session, user_id, request.message, request.history),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ── Watchlist ─────────────────────────────────────────────────────────────────
