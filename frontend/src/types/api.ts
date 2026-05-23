@@ -30,7 +30,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string
   password: string
-  name: string
+  display_name: string
 }
 
 export interface AuthTokens {
@@ -43,10 +43,14 @@ export interface AuthTokens {
 export interface User {
   id: string
   email: string
-  name: string
+  display_name: string
+  name?: string          // alias — some components use this
   avatar_url?: string
+  bio?: string
+  timezone?: string
+  is_active?: boolean
   created_at: string
-  subscription_tier: 'free' | 'pro' | 'enterprise'
+  subscription_tier?: 'free' | 'pro' | 'enterprise'
 }
 
 // ─── SSE / Streaming ─────────────────────────────────────────────────────────

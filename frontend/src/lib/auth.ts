@@ -29,8 +29,8 @@ export const authOptions: NextAuthOptions = {
           return {
             id: result.user.id,
             email: result.user.email,
-            name: result.user.name,
-            image: result.user.avatar_url,
+            name: result.user.display_name ?? result.user.email,
+            image: result.user.avatar_url ?? null,
             accessToken: result.tokens.access_token,
             refreshToken: result.tokens.refresh_token,
           }

@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     # ── AI providers ──────────────────────────────────────────────────────────
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
+    voyage_api_key: str = ""
+
+    # ── Stripe ────────────────────────────────────────────────────────────────
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id_pro: str = ""
+    stripe_price_id_enterprise: str = ""
 
     # ── Avatar & Voice ────────────────────────────────────────────────────────
     heygen_api_key: str = ""

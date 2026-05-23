@@ -16,11 +16,12 @@ EMBED_DIMENSIONS = 1024  # voyage-3 native dimension; stored as vector(1024)
 
 async def embed_text(text: str) -> list[float]:
     """Return a normalised embedding vector for *text*."""
+    key = settings.voyage_api_key or settings.anthropic_api_key
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
             VOYAGE_URL,
             headers={
-                "Authorization": f"Bearer {settings.anthropic_api_key}",
+                "Authorization": f"Bearer {key}",
                 "Content-Type": "application/json",
             },
             json={"input": [text], "model": EMBED_MODEL},
@@ -34,11 +35,12 @@ async def embed_batch(texts: list[str]) -> list[list[float]]:
     """Return embeddings for a list of texts in a single API call."""
     if not texts:
         return []
+    key = settings.voyage_api_key or settings.anthropic_api_key
     async with httpx.AsyncClient(timeout=60) as client:
         response = await client.post(
             VOYAGE_URL,
             headers={
-                "Authorization": f"Bearer {settings.anthropic_api_key}",
+                "Authorization": f"Bearer {key}",
                 "Content-Type": "application/json",
             },
             json={"input": texts, "model": EMBED_MODEL},

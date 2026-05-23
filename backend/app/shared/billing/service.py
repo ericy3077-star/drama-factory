@@ -44,7 +44,8 @@ async def get_subscription(
 ) -> SubscriptionSchema | None:
     result = await session.execute(
         text("""
-            SELECT id, user_id, plan, status, current_period_start,
+            SELECT id, user_id, plan, status, stripe_subscription_id,
+                   stripe_customer_id, current_period_start,
                    current_period_end, cancel_at_period_end, created_at
             FROM subscriptions
             WHERE user_id = :uid AND status IN ('active', 'trialing')
@@ -167,3 +168,69 @@ async def check_quota(
 def _json_safe(obj: Any) -> str:
     import json
     return json.dumps(obj, default=str)
+
+
+async def activate_subscription(
+    session: AsyncSession,
+    user_id: str,
+    plan: str,
+    stripe_subscription_id: str | None,
+    stripe_customer_id: str | None,
+) -> None:
+    """Upsert subscription to active paid plan after successful checkout."""
+    now = datetime.now(timezone.utc)
+    await session.execute(
+        text("""
+            INSERT INTO subscriptions
+                (id, user_id, plan, status, stripe_subscription_id, stripe_customer_id,
+                 current_period_start, current_period_end, cancel_at_period_end)
+            VALUES
+                (:id, :uid, :plan, 'active', :sub_id, :cust_id, :start, :end, false)
+            ON CONFLICT (user_id) DO UPDATE SET
+                plan = EXCLUDED.plan,
+                status = 'active',
+                stripe_subscription_id = COALESCE(EXCLUDED.stripe_subscription_id, subscriptions.stripe_subscription_id),
+                stripe_customer_id = COALESCE(EXCLUDED.stripe_customer_id, subscriptions.stripe_customer_id),
+                current_period_start = EXCLUDED.current_period_start,
+                current_period_end = EXCLUDED.current_period_end,
+                cancel_at_period_end = false,
+                updated_at = now()
+        """),
+        {
+            "id": uuid4(), "uid": user_id, "plan": plan,
+            "sub_id": stripe_subscription_id, "cust_id": stripe_customer_id,
+            "start": now, "end": now + timedelta(days=30),
+        },
+    )
+    await session.commit()
+    log.info("billing.subscription_activated", user_id=user_id, plan=plan)
+
+
+async def cancel_subscription_by_stripe_id(
+    session: AsyncSession,
+    stripe_subscription_id: str,
+) -> None:
+    await session.execute(
+        text("""
+            UPDATE subscriptions
+            SET status = 'cancelled', updated_at = now()
+            WHERE stripe_subscription_id = :sub_id
+        """),
+        {"sub_id": stripe_subscription_id},
+    )
+    await session.commit()
+
+
+async def mark_subscription_past_due(
+    session: AsyncSession,
+    stripe_subscription_id: str,
+) -> None:
+    await session.execute(
+        text("""
+            UPDATE subscriptions
+            SET status = 'past_due', updated_at = now()
+            WHERE stripe_subscription_id = :sub_id
+        """),
+        {"sub_id": stripe_subscription_id},
+    )
+    await session.commit()

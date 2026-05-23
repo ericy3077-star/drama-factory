@@ -26,6 +26,8 @@ class SubscriptionSchema(BaseModel):
     user_id: str
     plan: PlanTier
     status: SubscriptionStatus
+    stripe_subscription_id: str | None = None
+    stripe_customer_id: str | None = None
     current_period_start: datetime
     current_period_end: datetime
     cancel_at_period_end: bool

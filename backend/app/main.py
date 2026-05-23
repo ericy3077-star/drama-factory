@@ -75,6 +75,7 @@ def create_app() -> FastAPI:
     # ── API routers ───────────────────────────────────────────────────────────
     api_prefix = "/api/v1"
     app.include_router(users_router, prefix=f"{api_prefix}/users", tags=["users"])
+    app.include_router(users_router, prefix=f"{api_prefix}/auth", tags=["auth"])
     app.include_router(billing_router, prefix=f"{api_prefix}/billing", tags=["billing"])
     app.include_router(invest_router, prefix=f"{api_prefix}/invest", tags=["invest"])
     app.include_router(edu_router, prefix=f"{api_prefix}/edu", tags=["edu"])

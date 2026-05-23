@@ -32,7 +32,7 @@ export default function RegisterPage() {
     setIsPending(true)
     try {
       await apiPost<{ tokens: AuthTokens; user: User }>('/api/v1/auth/register', {
-        name,
+        display_name: name,
         email,
         password,
       })
