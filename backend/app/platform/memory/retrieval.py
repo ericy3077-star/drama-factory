@@ -40,7 +40,7 @@ async def semantic_search(
             params["end_date"] = end
 
     where = " AND ".join(where_clauses)
-    vec_literal = "[" + ",".join(str(x) for x in query_embedding) + "]"
+    vec_literal = "[" + ",".join(f"{float(x):.8g}" for x in query_embedding) + "]"
 
     sql = text(f"""
         SELECT id, user_id, content, content_type, topic, metadata, created_at,
