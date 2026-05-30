@@ -43,6 +43,7 @@ const eduNav: NavItem[] = [
   { label: '数字人工作室', href: '/edu', icon: Video },
   { label: '课程管理', href: '/edu/courses', icon: BookOpen },
   { label: '数据分析', href: '/edu/analytics', icon: BarChart3 },
+  { label: 'AI 教学助手', href: '/edu/chat', icon: MessageSquare },
 ]
 
 function NavGroup({
