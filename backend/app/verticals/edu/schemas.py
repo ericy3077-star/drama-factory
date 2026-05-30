@@ -137,3 +137,54 @@ class AgentTaskResponse(BaseModel):
     step_results: list[dict[str, Any]] = Field(default_factory=list)
     error: str | None = None
     requires_human: bool = False
+
+
+# ── Digital Avatar ────────────────────────────────────────────────────────────
+
+class AvatarStatus(StrEnum):
+    CREATING = "creating"
+    TRAINING = "training"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class AvatarCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str = Field("", max_length=500)
+
+
+class DigitalAvatar(BaseModel):
+    id: str
+    name: str
+    description: str
+    status: AvatarStatus
+    thumbnail_url: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── Video Job ─────────────────────────────────────────────────────────────────
+
+class VideoJobStatus(StrEnum):
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class VideoGenerateRequest(BaseModel):
+    script: str = Field(..., min_length=1, max_length=5000)
+
+
+class VideoJob(BaseModel):
+    id: str
+    avatar_id: str
+    script: str
+    status: VideoJobStatus
+    progress: int = Field(0, ge=0, le=100)
+    video_url: str | None = None
+    duration_seconds: float | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
