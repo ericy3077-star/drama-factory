@@ -23,6 +23,7 @@ from app.verticals.edu.router import router as edu_router
 # Shared routers
 from app.shared.users.router import router as users_router
 from app.shared.billing.router import router as billing_router
+from app.shared.tasks.router import router as tasks_router
 
 log = structlog.get_logger()
 
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(billing_router, prefix=f"{api_prefix}/billing", tags=["billing"])
     app.include_router(invest_router, prefix=f"{api_prefix}/invest", tags=["invest"])
     app.include_router(edu_router, prefix=f"{api_prefix}/edu", tags=["edu"])
+    app.include_router(tasks_router, prefix=f"{api_prefix}/tasks", tags=["tasks"])
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", tags=["system"])

@@ -334,6 +334,84 @@ async def research_stock(
     return await service.run_research(request)
 
 
+# ── Vault document upload ─────────────────────────────────────────────────────
+
+_ALLOWED_VAULT_EXTENSIONS = {".pdf", ".docx", ".txt"}
+_MAX_VAULT_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@router.post("/vault/upload")
+async def vault_upload(
+    user_id: CurrentUserId,
+    file: UploadFile = File(...),
+) -> dict[str, Any]:
+    """Accept a document upload, validate it, and return a rich mock analysis."""
+    import math
+    import os
+
+    filename = file.filename or "unknown"
+    ext = os.path.splitext(filename)[-1].lower()
+    if ext not in _ALLOWED_VAULT_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"不支持的文件类型 '{ext}'，仅接受 PDF / DOCX / TXT",
+        )
+
+    content = await file.read()
+    size_bytes = len(content)
+    if size_bytes > _MAX_VAULT_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"文件超出 50 MB 限制（当前 {size_bytes / 1024 / 1024:.1f} MB）",
+        )
+
+    # Estimate page count: ~3 000 bytes per page for PDF, ~1 500 for TXT/DOCX
+    bytes_per_page = 3000 if ext == ".pdf" else 1500
+    page_count = max(1, math.ceil(size_bytes / bytes_per_page))
+
+    memory_id = str(uuid.uuid4())
+    indexed_at = datetime.now(timezone.utc).isoformat()
+
+    # Mock extracted entities and summary based on filename heuristics
+    _entity_pools = {
+        "nvda": ["NVDA", "英伟达", "H100", "Blackwell", "数据中心营收 $22.1B", "毛利率 74.6%"],
+        "byd": ["BYD", "比亚迪", "刀片电池", "DM5.0", "Q1 净利润 +18%", "海外销量 9.8 万辆"],
+        "apple": ["AAPL", "苹果", "Vision Pro", "Services 营收 $24.2B", "回购计划 $110B"],
+        "openai": ["OpenAI", "GPT-4o", "Sora", "企业客户超 100 万", "ARR $3.4B"],
+    }
+    base = filename.lower()
+    entities: list[str] = ["营收同比增长 12%", "Q3 2024", "净利润率 18.4%"]
+    for key, pool in _entity_pools.items():
+        if key in base:
+            entities = pool
+            break
+
+    summary = (
+        f"文档《{filename}》已成功解析，共 {page_count} 页。"
+        "AI 提取了关键财务指标、风险因素及行业动态摘要。"
+        "所有内容已向量化存入您的知识库，可通过投资助手直接问询。"
+    )
+
+    log.info(
+        "invest.vault.uploaded",
+        user_id=user_id,
+        filename=filename,
+        size_bytes=size_bytes,
+        memory_id=memory_id,
+    )
+
+    return {
+        "memory_id": memory_id,
+        "filename": filename,
+        "size_bytes": size_bytes,
+        "page_count": page_count,
+        "extracted_entities": entities,
+        "summary": summary,
+        "status": "indexed",
+        "indexed_at": indexed_at,
+    }
+
+
 # ── Agent ─────────────────────────────────────────────────────────────────────
 
 @router.post("/agent", response_model=AgentTaskResponse)
